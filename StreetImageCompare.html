@@ -4,20 +4,23 @@
     <meta charset="utf-8">
     <title>Street Image Compare View Side-by-Side</title>
 
+    <!-- *** References for Mapillary and leaflet stylesheets ... -->
     <link href='https://unpkg.com/mapillary-js@2.5.0/dist/mapillary.min.css' rel='stylesheet' />
     <link href='https://unpkg.com/leaflet@1.0.1/dist/leaflet.css' rel='stylesheet' />
 
+    <!-- *** References for Mapillary and Leaflet  ... -->
     <script src='https://unpkg.com/mapillary-js@2.5.0/dist/mapillary.min.js'></script>
     <script src='https://unpkg.com/leaflet@1.0.1/dist/leaflet.js'></script>
 
-    <!-- *** References for MapBox GL JS ... -->
+    <!-- *** References for MapBox GL JS and stylesheet ... -->
 		<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.js'></script>
     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.css' rel='stylesheet' />
 
-    <!-- *** References for MapBox GL Draw ... -->
+    <!-- *** References for MapBox GL Draw plugin and stylesheet... -->
     <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v0.18.0/mapbox-gl-draw.js'></script>
     <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v0.18.0/mapbox-gl-draw.css' type='text/css'/>
 
+    <!-- *** Styles... -->
     <style>
       html, body {
         min-height: 100%;
@@ -33,10 +36,11 @@
         width: 50%;
         height: 50%;
       }
-
    </style>
   </head>
+
   <body>
+    <!-- *** The page structure: above the maps and stree views ... -->
     <div id="titlebar">
      <center>
       <table border=0 style="width:95vw;height:5vw">
@@ -46,7 +50,6 @@
            <center>
               Type city name or address or lat,long:
               <input id="textToGeoCode" type="text" value="">
-              <input type="submit" value="Go" onclick="geoCode()">
            </center>
           </div>
          </td>
@@ -66,6 +69,7 @@
     </center>
     </div>
 
+    <!-- *** The page structure: the maps and street views ... -->
     <div id="maps-images">
      <center>
       <table border=1>
@@ -99,26 +103,32 @@
     </center>
     </div>
 
+    <!-- *** The page structure: below the maps and street views ... -->
     <div id="bottom">
       Bottom ...
     </div>
 
+    <!-- *** The script section ... -->
     <script>
-      var google_map;
-      var panorama;
-      var mly;
-      var no_mapillary_images = false;
-      var listenerHandle;
-      var marker;
+      var google_map;                  //*** the Google Map ...
+      var panorama;                    //*** the Google Street View ...
+      var mly;                         //*** Mapillary ...
+      var no_mapillary_images = false; //*** to control if Mapillary images exist or not ...
+      var listenerHandle;              //*** the listener on Google Map for mousedown event ...
+      var marker;                      //*** ???
 
-      //Enable-Disable the functionality
+      //*** Define a listener on Google Map for mousedown event and change the cursor option ...
       function prepareAddMarker(e){
            listenerHandle = google.maps.event.addListener(window.google_map, 'mousedown', addMarker);
            window.google_map.setOptions({draggableCursor:'crosshair'});
        }
 
+       //*** Add a marker on Google Map at user click ...
       function addMarker(e){
+         //*** Remove previous marker if exist ...
          if (marker != null) marker.setMap(null);
+
+         //*** Define icon ...
          var icon = {
               path: "M-20,0a20,20 0 1,0 40,0a20,20 0 1,0 -40,0",
               fillColor: '#FF0000',
@@ -128,6 +138,7 @@
               scale: 0.5
           }
 
+          //*** Create a new Google marker ...
           marker = new google.maps.Marker({
               //position: event.latLng,
               position: {lat: e.latLng.lat(), lng: e.latLng.lng()},
@@ -137,47 +148,81 @@
               zIndex : -20
           });
 
+          //*** Set the map center at the user click coordinates ...
           window.google_map.setCenter(new google.maps.LatLng(e.latLng.lat(), e.latLng.lng()));
 
+          //*** Remove the listener and set the cursor icon to the default ...
           google.maps.event.removeListener(listenerHandle);
           window.google_map.setOptions({draggableCursor:''});
 
-          prepareGeoCode(e.latLng.lat(), e.latLng.lng());
+          //*** Update the search text input with the user click coordinates ...
+          updatePlace(e.latLng.lat(), e.latLng.lng());
        }
 
+       //*** Remove marker on Google Map ...
       function removeMarker(e){
           marker.setMap(null);
       }
 
-      function prepareGeoCode (lat, lng){
+      //*** Update the search text input with the user click coordinates ...
+      function updatePlace (lat, lng){
+          //*** Get the search text input ...
           var input = document.getElementById("textToGeoCode");
+
+          //*** Set the search text input with the user click coordinates ...
           var theText = input.value;
           input.value = lat + "," + lng;
-          geoCode();
+
+          //*** Generate a click event on the search text input ...
+          google.maps.event.trigger(input, 'focus')
+          google.maps.event.trigger(input, 'keydown', { keyCode: 13 });
       }
 
 
-
-
       function initialize() {
-        //### The original pegman position ...
-        var pegman_position = {lat: 42.628386111111126, lng: 13.291408333333237};
-        var marker;
-        var startEdit = false;
+        var pegman_position = {lat: 42.628386111111126, lng: 13.291408333333237};  //*** The original pegman position ...
+        var marker;                                                                //*** ??? ...
+        var startEdit = false;                                                     //*** ??? ...
 
+        //*** Create a div with a marker to put on OSM map ...
         var el = document.createElement('div');
         el.className = 'marker';
         el.style.backgroundImage = 'url(http://localhost/Mapillary/StreetImageCompare/markerTransparent.png)';
         el.style.width = '50px';
         el.style.height = '50px';
 
-        //### Add Google Map ...
-        window.google_map = new google.maps.Map(document.getElementById('google_map'), {
+        //*** Add Google Map ...
+        google_map = new google.maps.Map(document.getElementById('google_map'), {
           center: pegman_position,
           zoom: 16
         });
 
-        //### Add a button to draw point on Google Maps ...
+        //*** Add a search text input ...
+        var searchBox = new google.maps.places.SearchBox(document.getElementById("textToGeoCode"));
+
+        //*** Add a listener on search text input ...
+        google.maps.event.addListener(searchBox, 'places_changed', function() {
+             searchBox.set('google_map', null);
+
+             var places = searchBox.getPlaces();
+             var bounds = new google.maps.LatLngBounds();
+
+             var i, place;
+             for (i = 0; place = places[i]; i++) {
+               (function(place) {
+                 bounds.extend(place.geometry.location);
+               }(place));
+             }
+
+             window.google_map.fitBounds(bounds);
+             searchBox.set('google_map', google_map);
+             google_map.setZoom(Math.min(google_map.getZoom(),16));
+
+             //*** Syinchronize Google Street View ...
+             window.panorama.setPosition(google_map.getCenter());
+           });
+
+        //*** Add a button to draw point on Google Maps ...
         var controlEditUI = document.createElement('DIV');
         controlEditUI.id = "controlEditUI";
         controlEditUI.style.cursor = 'pointer';
@@ -190,9 +235,10 @@
         controlEditUI.title = 'Click to get the coordinates';
         window.google_map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlEditUI);
 
+        //*** Add a listener on the button to draw point on Google Maps for the mousedown event ...
         controlEditUI.addEventListener('mousedown', prepareAddMarker);
 
-        //### Add a button on Google Maps ...
+        //### Add a button to cancel markers on Google Maps ...
         var controlTrashUI = document.createElement('DIV');
         controlTrashUI.id = 'controlTrashUI';
         controlTrashUI.style.cursor = 'pointer';
@@ -205,9 +251,10 @@
         controlTrashUI.title = 'Click to remove marker from the map';
         window.google_map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlTrashUI);
 
+        //*** Add a listener on the button to cancel markers on Google Maps for the click event ...
         controlTrashUI.addEventListener('click', removeMarker);
 
-
+        //*** Add Google Street View ...
         window.panorama = new google.maps.StreetViewPanorama(
           document.getElementById('google-street-view_images'), {
             position: pegman_position,
@@ -218,9 +265,11 @@
           });
        google_map.setStreetView(window.panorama);
 
+       //*** Add a listener on Google Street View on position_changed event ...
        window.panorama.addListener('position_changed', function(){
-          var latLon = { lat: window.panorama.getPosition().lat(), lng: window.panorama.getPosition().lng() };
+          //var latLon = { lat: window.panorama.getPosition().lat(), lng: window.panorama.getPosition().lng() };
 
+          //*** Create a marker if does not exist and set the current position or, if the marker already exist, set it to the current position  ...
           if (!marker) {
               marker = new mapboxgl.Marker()
                 .setLngLat([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()])
@@ -228,10 +277,14 @@
           } else {
               marker.setLngLat([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
           }
+
+          //*** Set OSM center to the current position ...
           osm_map.setCenter([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
 
+          //*** Set Mapillary images to the current position ...
           window.mly.moveCloseTo(window.panorama.getPosition().lat(), window.panorama.getPosition().lng())
               .then(
+                   //*** If images are founded ...
                   function(node) {
                     var mapillary_images_div = document.getElementById('mapillary_images');
                     mapillary_images_div.style.opacity = 1;
@@ -241,12 +294,14 @@
                     no_mapillary_images = false;
 
                     console.log(node.key); },
+                  //*** If images are NOT founded: in this case show a hidden div with messages ...
                   function(error) {
                     var mapillary_images_div = document.getElementById('mapillary_images');
                     mapillary_images_div.style.opacity = .2;
                     var no_mapillary_images_div = document.getElementById('no_mapillary_images');
                     no_mapillary_images_div.style.display = "";
 
+                    //*** Set that NO Mapillary images are founded ...
                     no_mapillary_images = true;
 
                     console.error(error);
@@ -254,27 +309,19 @@
 
       });
 
-      //### Add Open Street Map  ...
-/*
-      var osm_map = L.map('osm_map').setView([42.628386111111126, 13.291408333333237], 16);
-      var osmUrl='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
-      var osmAttrib='Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors';
-      var osm = new L.TileLayer(osmUrl, { maxZoom: 18, attribution: osmAttrib});
-      osm_map.addLayer(osm);
-*/
+      //*** Add MapBox / OSM Map ...
       mapboxgl.accessToken = 'pk.eyJ1IjoiY2VzYXJlIiwiYSI6Im1LdmxtRU0ifQ.uoGK9BB9eywCPknCRlB9JA';
-      // *** Create and configure the map ...
       var osm_map = new mapboxgl.Map({
-          container: 'osm_map', // container id
-          style: 'mapbox://styles/mapbox/bright-v9', //stylesheet location
-          center: [13.291408333333237,42.628386111111126], // starting position
-          zoom: 16 // starting zoom
+          container: 'osm_map',                            //*** container id
+          style: 'mapbox://styles/mapbox/bright-v9',       //*** stylesheet location
+          center: [13.291408333333237,42.628386111111126], //*** starting position
+          zoom: 16                                         //*** starting zoom
       });
-      // *** Add zoom and rotation controls to the map ...
-//      osm_map.addControl(new mapboxgl.Navigation({position: 'bottom-left'}));
+
+      //*** Add zoom and rotation controls to the MapBox / OMS map ...
       osm_map.addControl(new mapboxgl.NavigationControl());
 
-      // *** Add the draw control to the map ...
+      //*** Add the draw control to the MapBox / OMS map ...
       var draw = new MapboxDraw({
           displayControlsDefault: false,
           controls: {
@@ -284,35 +331,43 @@
       });
       osm_map.addControl(draw, 'top-left');
 
+      //*** Add the edit button to the MapBox / OMS map ...
       var editButton = document.getElementsByClassName('mapbox-gl-draw_ctrl-draw-btn mapbox-gl-draw_point'); // grab a reference to your element
 
+      //*** Set that the edit session started ...
       for(i=0; i<editButton.length; i++) {
           editButton[i].onclick = function(){
                     startEdit = true;
               };
       }
 
-      // *** Manage the mouse down event ...
+      //*** Manage the mouse down event on the MapBox / OMS map ...
       osm_map.on('mousedown', function (e) {
-        // *** Get  geo points  ...
+        // ** Get  geo points  ...
         geoCoords = e.lngLat;
 
-        // *** Get the point geo coordinates  ...
+        //*** Get the point geo coordinates  ...
         lng = Number(geoCoords.lng.toFixed(5));
         lat = Number(geoCoords.lat.toFixed(5));
 
         if (startEdit == true) {
-          //alert("Lng = " + lng);
+          //*** Get the search text input ...
           var input = document.getElementById("textToGeoCode");
+
+          //*** Set the search text input with the user click coordinates ...
           var theText = input.value;
           input.value = lat + "," + lng;
+
+          //*** Set that the edit session finished ...
           startEdit = false;
 
-          geoCode();
+          //*** Generate a click event on the search text input ...
+          google.maps.event.trigger(input, 'focus')
+          google.maps.event.trigger(input, 'keydown', { keyCode: 13 });
        };
       });
 
-      //### Add Mapillary ...
+      //*** Add Mapillary ...
       window.mly = new Mapillary.Viewer(
               'mapillary_images',
               'QjI1NnU0aG5FZFZISE56U3R5aWN4ZzowODkzY2RjNjM1ZmEwYTVi',
@@ -328,19 +383,17 @@
 
       window.mly.setCenter(pegman_position.lat, pegman_position.lon);
 
-      //### Draw a green line for the Google Street View table cell ...
+      //*** Draw a green line for the Google Street View table cell ...
       var td = document.getElementById("google-street-view");
       td.style.borderColor = "green";
       td.style.borderWidth = "5px";
       td.style.borderStyle = "solid";
 
-      //### Put a marker on OSM map and to synchronize it with Mapillary images locations  ...
+      //*** Put a marker on OSM map and to synchronize it with Mapillary images locations  ...
       window.mly.on(Mapillary.Viewer.nodechanged, function (node) {
           var latLon = { lat: node.latLon.lat, lng: node.latLon.lon };
 
-          //alert ("Lat = " + node.latLon.lat);
-          //alert ("window.panorama.Lat = " + window.panorama.getPosition().lat());
-
+          //*** Create a marker if does not exist and set the current position or, if the marker already exist, set it to the current position  ...
           if (!marker) {
               marker = new mapboxgl.Marker(el, {offset: [-30, -35]})
                 .setLngLat([node.latLon.lon, node.latLon.lat])
@@ -348,21 +401,23 @@
           } else {
               marker.setLngLat([node.latLon.lon, node.latLon.lat]);
           }
+
+          //*** Set OSM center to the current position ...
           osm_map.setCenter([node.latLon.lon, node.latLon.lat]);
 
+          //*** Get the new current position ...
           myLatLng = new google.maps.LatLng({lat: node.latLon.lat, lng: node.latLon.lon});
 
+          //*** Update Google Street View  to the current position ...
           window.panorama.setPosition(myLatLng);
-/*
-          window.panorama.setPosition().lat() = node.latLon.lat;
-          window.panorama.setPosition().lng() = node.latLon.lon;
-*/
       });
 
       window.addEventListener('resize', function() { mly.resize(); });
 
       }
 
+
+      //*** Fuction to manage the street view type ...
       function onSelect(event) {
           switch (this.options[this.selectedIndex].text) {
              case "Mapillary":
@@ -380,12 +435,6 @@
                  window.mly.activateComponent("direction");
                  window.mly.activateComponent("sequence");
 
-                 //window.panorama.setOptions(scrollwheel:false);
-
-
-                 //panorama = map.getStreetView();
-                 // Set up Street View and initially set it visible. Register the
-                 // custom panorama provider function.
                  var panoOptions = {
                    scrollwheel: false,
                    disableDefaultUI: true,
@@ -414,49 +463,14 @@
                  clickToGo: true
                };
                window.panorama.setOptions(panoOptions);
-
                break;
             }
-      }
-
-      function geoCode() {
-        var input = document.getElementById("textToGeoCode");
-        var theText = input.value;
-        if (theText) {
-             //alert('The text is: ' + theText);
-             var OpenCage_api_key = '0b74e3813b8e4ec89612caaf3b777cb5';
-             var OpenCage_api_url = "https://api.opencagedata.com/geocode/v1/json?q="+ theText + "&pretty=1&key=" + OpenCage_api_key;
-             var req = new XMLHttpRequest();
-             req.onload = function() {
-               if (req.readyState == 4 && req.status == 200) {
-                 var response = JSON.parse(this.responseText);
-                 var pegman_position = {lat: response.results[0].geometry.lat, lng: response.results[0].geometry.lng};
-                 window.google_map.setCenter(pegman_position);
-                 window.panorama.setPosition(pegman_position);
-
-//                 prompt (this.responseText);
-//                 console.log(this.responseText);
-
-//                 alert("Lat = " + response.results[0].geometry.lat + " - Lon = " + response.results[0].geometry.lng);
-//                 myLatLng = new google.maps.LatLng({lat: response.results[0].geometry.lat, lng: response.results[0].geometry.lng});
-
-//                 window.panorama.setPosition(myLatLng);
-
-               }
-             };
-             req.open("GET", OpenCage_api_url, true);
-             req.send();
-             // Recorder.record('audio', fileName);
-        } else {
-             alert('Please enter a text!');
-             input.focus();
-        }
       }
 
     </script>
 
     <script async defer
-        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD4w4Yw72Rf3z8Z7TnLQ6HkJqZ5NEgV2pw&callback=initialize">
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD4w4Yw72Rf3z8Z7TnLQ6HkJqZ5NEgV2pw&libraries=places&callback=initialize">
     </script>
 
   </body>
