@@ -94,17 +94,6 @@
            </center>
           </div>
          </td>
-<!--         <td>
-          <div id="selectStreetView">
-           <center>
-            Choose the street image that will be the "master":
-            <select onchange="onSelect.call(this, event)">
-              <option value="mapillary">Google Street View</option>
-              <option value="streetview">Mapillary</option>
-            </select>
-           </center>
-         </div> -->
-         </td>
         </tr>
       </table>
     </center>
@@ -162,13 +151,35 @@
     <!-- *** The script section ... -->
     <script>
       var google_map;                      //*** the Google Map ...
-      var osm_map;
+      var osm_map;                         //*** the OpenStreet Map ...
       var panorama;                        //*** the Google Street View ...
       var mly;                             //*** Mapillary ...
       var no_mapillary_images = false;     //*** to control if Mapillary images exist or not ...
+      var no_streetview_images = false;    //*** to control if Google Street View images exist or not ...
       var listenerHandle;                  //*** the listener on Google Map for mousedown event ...
       var marker;                          //*** ???
       var theClickWasMadeOn = "Mapillary"; //*** Where the user clicked on  ...
+      var editedPointLat = 0;
+      var editedPointLng = 0;
+      var latParam;
+      var lngParam;
+
+
+      function getUrlParameter(name) {
+       name = name.replace(/[\[]/, '\\[').replace(/[\]]/, '\\]');
+       var regex = new RegExp('[\\?&]' + name + '=([^&#]*)');
+       var results = regex.exec(location.search);
+       return results === null ? '' : decodeURIComponent(results[1].replace(/\+/g, ' '));
+      };
+
+      latParam = getUrlParameter('lat');
+      //alert("Lat = " + latParam);
+
+      lngParam = getUrlParameter('lng');
+      //alert("Lng = " + lngParam);
+
+
+
 
       //*** Intercept the user click when happen on Google Street View div  ...
       var google_street_view_images_div = document.getElementById("google-street-view_images"); //grab the element
@@ -233,6 +244,9 @@
          //*** Remove previous marker if exist ...
          if (marker != null) marker.setMap(null);
 
+         editedPointLat = e.latLng.lat();
+         editedPointLng = e.latLng.lng();
+
          //*** Define icon ...
          var icon = {
               path: "M-20,0a20,20 0 1,0 40,0a20,20 0 1,0 -40,0",
@@ -255,6 +269,8 @@
 
           //*** Set the map center at the user click coordinates ...
           window.google_map.setCenter(new google.maps.LatLng(e.latLng.lat(), e.latLng.lng()));
+
+          //alert("Centrata la mappa Google a :" + e.latLng);
 
           //*** Remove the listener and set the cursor icon to the default ...
           google.maps.event.removeListener(listenerHandle);
@@ -285,11 +301,18 @@
 
 
       function initialize() {
-        var pegman_position = {lat: 42.628386111111126, lng: 13.291408333333237};  //*** The original pegman position ...
+        //var pegman_position = {lat: 42.628386111111126, lng: 13.291408333333237};  //*** The original pegman position ...
+        var new_pegman_position;  //*** The original pegman position ...
         var marker;                                                                //*** ??? ...
         var startEdit = false;                                                     //*** ??? ...
         var currentPositionLat;                                                    //*** ??? ...
         var currentPositionLng;                                                    //*** ??? ...
+
+        //alert("Lat = " + latParam);
+
+        //pegman_position = {lat: latParam, lng: lngParam};
+
+        new_pegman_position = new google.maps.LatLng(latParam, lngParam);
 
         //*** Create a div with a marker to put on OSM map ...
         var el = document.createElement('div');
@@ -298,17 +321,27 @@
         el.style.width = '50px';
         el.style.height = '50px';
 
+        //alert("paegman Lat = " + pegman_position.lat);
+
         //*** Add Google Map ...
         google_map = new google.maps.Map(document.getElementById('google_map'), {
-          center: pegman_position,
+          mapTypeControlOptions: {
+              mapTypeIds: []
+          },
+          center: new_pegman_position,
           zoom: 16
         });
+
+        //alert("aggiunta gmaps ... ");
 
         //*** Add a search text input ...
         var searchBox = new google.maps.places.SearchBox(document.getElementById("textToGeoCode"));
 
         //*** Add a listener on search text input ...
         google.maps.event.addListener(searchBox, 'places_changed', function() {
+             var currentLat;
+             var currentLng;
+
              searchBox.set('google_map', null);
 
              var places = searchBox.getPlaces();
@@ -325,13 +358,31 @@
              searchBox.set('google_map', google_map);
              google_map.setZoom(Math.min(google_map.getZoom(),16));
 
-             window.theClickWasMadeOn = "";
+             window.theClickWasMadeOn = "StreetView";
 
-             google_map.setCenter(bounds.getCenter());
+             if (editedPointLat == 0) {
+                currentLat = bounds.getCenter().lat();
+                currentLng = bounds.getCenter().lng();
+             }
+             else {
+               currentLat = editedPointLat;
+               currentLng = editedPointLng;
+               editedPointLat = 0;
+               editedPointLng = 0;
+             }
 
-             window.osm_map.setCenter([google_map.getCenter().lng(), google_map.getCenter().lat()]);
+             window.google_map.setCenter(new google.maps.LatLng(currentLat, currentLng));
 
-             //*** Syinchronize Google Street View ...
+             //google_map.setCenter(bounds.getCenter());
+
+             //alert("Centrata mappa google..." + google_map.getCenter());
+
+             //window.osm_map.setCenter([google_map.getCenter().lng(), google_map.getCenter().lat()]);
+             window.osm_map.setCenter([currentLng, currentLat]);
+
+             //alert("Centrata mappa osm...");
+
+             //*** Synchronize Google Street View ...
              window.panorama.setPosition(google_map.getCenter());
 
              window.mly.moveCloseTo(google_map.getCenter().lat(), google_map.getCenter().lng())
@@ -377,6 +428,30 @@
                      var no_google_street_view_images_div = document.getElementById('no_google-street-view_images');
                      no_google_street_view_images_div.style.display = "none";
 
+                     if (no_streetview_images == true) {
+                        var new_pegman_position = {lat: currentPositionLat, lng: currentPositionLng};
+
+                        window.panorama = new google.maps.StreetViewPanorama(
+                          document.getElementById('google-street-view_images'), {
+                            position: new_pegman_position,
+                            pov: {
+                              heading: 34,
+                              pitch: 10
+                            }
+                          });
+                       google_map.setStreetView(window.panorama);
+
+                       window.panorama.addListener('position_changed', function(){
+                         if (theClickWasMadeOn == "StreetView") {
+                           currentPositionLat = window.panorama.getPosition().lat();
+                           currentPositionLng = window.panorama.getPosition().lng();
+                           window.synchro("Mapillary", currentPositionLat, currentPositionLng);
+                           }
+                        });
+
+                       no_streetview_images = false;
+                     }
+
                      //no_mapillary_images = false;
 
                 }
@@ -388,6 +463,9 @@
                      google_street_view_images_div.style.opacity = .2;
                      var no_google_street_view_images_div = document.getElementById('no_google-street-view_images');
                      no_google_street_view_images_div.style.display = "";
+
+                     no_streetview_images = true;
+
 
                      //*** Set that NO Mapillary images are founded ...
                      //no_mapillary_images = true;
@@ -428,10 +506,12 @@
         //*** Add a listener on the button to cancel markers on Google Maps for the click event ...
         controlTrashUI.addEventListener('click', removeMarker);
 
+        //alert("lat = " + new_pegman_position.lat());
+
         //*** Add Google Street View ...
         window.panorama = new google.maps.StreetViewPanorama(
           document.getElementById('google-street-view_images'), {
-            position: pegman_position,
+            position: new_pegman_position,
             pov: {
               heading: 34,
               pitch: 10
@@ -445,30 +525,18 @@
            currentPositionLat = window.panorama.getPosition().lat();
            currentPositionLng = window.panorama.getPosition().lng();
            window.synchro("Mapillary", currentPositionLat, currentPositionLng);
-
-           //window.osm_map.setCenter([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
-
-           /*window.mly.moveCloseTo(lat, lng)
-             .then(
-                  //*** If images are founded ...
-                 function(node) {
-                   console.log(node.key); },
-                 //*** If images are NOT founded: in this case show a hidden div with messages ...
-                 function(error) {
-                   console.error(error);
-                 });*/
-
-
            }
         });
 
       //*** Add MapBox / OSM Map ...
+      var center = new mapboxgl.LngLat(lngParam, latParam);
       mapboxgl.accessToken = 'pk.eyJ1IjoiY2VzYXJlIiwiYSI6Im1LdmxtRU0ifQ.uoGK9BB9eywCPknCRlB9JA';
       osm_map = new mapboxgl.Map({
-          container: 'osm_map',                            //*** container id
-          style: 'mapbox://styles/mapbox/bright-v9',       //*** stylesheet location
-          center: [13.291408333333237,42.628386111111126], //*** starting position
-          zoom: 16                                         //*** starting zoom
+          container: 'osm_map',                               //*** container id
+          style: 'mapbox://styles/mapbox/bright-v9',          //*** stylesheet location
+          //center: [13.291408333333237,42.628386111111126],  //*** starting position
+          center: center,                        //*** starting position
+          zoom: 16                                            //*** starting zoom
       });
 
       //*** Add zoom and rotation controls to the MapBox / OMS map ...
@@ -581,28 +649,32 @@
       //*** Add Mapillary ...
       window.mly = new Mapillary.Viewer(
               'mapillary_images',
-              'QWJSSnU3YWRLRFlzc2Q2ZDJZMDc2dzplMjU5ZjIwN2QyMzliZDdh',
+              'QWJSSnU3YWRLRFlzc2Q2ZDJZMDc2dzplMjU5ZjIwN2QyMzliZDdh' /*,
               'Sx1k3lLpdFU1TWS-8u_Y-w',
           {
               component: {
                   cover: false
               }
-          }
+          } */
         );
-      //window.mly.deactivateComponent("direction");
-      //window.mly.deactivateComponent("sequence");
 
-      window.mly.setCenter(pegman_position.lat, pegman_position.lon);
+      //alert("mapillary lat = " + new_pegman_position.lat());
 
-      //*** Draw a green line for the Google Street View table cell ...
-      var td = document.getElementById("google-street-view");
-      td.style.borderColor = "green";
-      td.style.borderWidth = "5px";
-      td.style.borderStyle = "solid";
+      window.mly.setCenter(new_pegman_position.lat(), new_pegman_position.lng());
+
+      //alert("mapillary lon = " + new_pegman_position.lng());
+
+      window.mly.moveCloseTo(new_pegman_position.lat(), new_pegman_position.lng())
+            .then(
+                function(node) { console.log(node.key); },
+                function(error) { console.error(error); });
 
       //*** Put a marker on OSM map and to synchronize it with Mapillary images locations  ...
       window.mly.on(Mapillary.Viewer.nodechanged, function (node) {
           var latLon = { lat: node.latLon.lat, lng: node.latLon.lon };
+
+          //alert("lat x center mly = " + latLon.lat);
+          //alert("lng x center mly = " + latLon.lng);
 
           //*** Create a marker if does not exist and set the current position or, if the marker already exist, set it to the current position  ...
           if (!marker) {
@@ -617,72 +689,12 @@
             currentPositionLat = node.latLon.lat;
             currentPositionLng = node.latLon.lon;
             window.synchro("StreetView", currentPositionLat, currentPositionLng);
-
-            //window.osm_map.setCenter([node.latLon.lon, node.latLon.lat]);
-
-            //myLatLng = new google.maps.LatLng({lat: node.latLon.lat, lng: node.latLon.lon});
-
-            //*** Update Google Street View  to the current position ...
-            //window.panorama.setPosition(myLatLng);
-
           }
       });
 
       window.addEventListener('resize', function() { mly.resize(); });
 
       }
-
-
-      //*** Fuction to manage the street view type ...
-      function onSelect(event) {
-          switch (this.options[this.selectedIndex].text) {
-             case "Mapillary":
-               if (no_mapillary_images == false) {
-                 var td = document.getElementById("mapillary");
-                 td.style.borderColor = "green";
-                 td.style.borderWidth = "5px";
-                 td.style.borderStyle = "solid";
-
-                 var td = document.getElementById("google-street-view");
-                 td.style.borderColor = "black";
-                 td.style.borderWidth = "1px";
-                 td.style.borderStyle = "solid";
-
-                 window.mly.activateComponent("direction");
-                 window.mly.activateComponent("sequence");
-
-                 var panoOptions = {
-                   scrollwheel: false,
-                   disableDefaultUI: true,
-                   clickToGo: false
-                 };
-                 window.panorama.setOptions(panoOptions);
-               }
-             break;
-             case "Google Street View":
-               var td = document.getElementById("google-street-view");
-               td.style.borderColor = "green";
-               td.style.borderWidth = "5px";
-               td.style.borderStyle = "solid";
-
-               var td = document.getElementById("mapillary");
-               td.style.borderColor = "black";
-               td.style.borderWidth = "1px";
-               td.style.borderStyle = "solid";
-
-               window.mly.deactivateComponent("direction");
-               window.mly.deactivateComponent("sequence");
-
-               var panoOptions = {
-                 scrollwheel: true,
-                 disableDefaultUI: false,
-                 clickToGo: true
-               };
-               window.panorama.setOptions(panoOptions);
-               break;
-            }
-      }
-
     </script>
 
     <script async defer

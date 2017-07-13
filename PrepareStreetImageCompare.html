@@ -1,0 +1,58 @@
+<html>
+ <head>
+   <meta charset="utf-8">
+   <title>Street Image Compare View Side-by-Side</title>
+
+ </head>
+ <body>
+   <div id="address">
+    <center>
+       Search for:
+       <input id="textToGeoCode" type="text" placeholder="Type city name or address or lat,long ..." size="30">
+    </center>
+   </div>
+  <script>
+  function initialize() {
+    //*** Add a search text input ...
+    var searchBox = new google.maps.places.SearchBox(document.getElementById("textToGeoCode"));
+
+    //*** Add a listener on search text input ...
+    google.maps.event.addListener(searchBox, 'places_changed', function() {
+         var currentLat;
+         var currentLng;
+
+         searchBox.set('google_map', null);
+
+         var places = searchBox.getPlaces();
+         var bounds = new google.maps.LatLngBounds();
+
+         var i, place;
+         for (i = 0; place = places[i]; i++) {
+           (function(place) {
+             bounds.extend(place.geometry.location);
+           }(place));
+         }
+
+         currentLat = bounds.getCenter().lat();
+         currentLng = bounds.getCenter().lng();
+
+         //alert("Lat = " + currentLat + " - Lng = " + currentLng);
+
+         var theUrl = "StreetImageCompare.html?lat="+currentLat+"&lng="+currentLng;
+
+         //window.location = "StreetImageCompare.html?lat="+currentLat+"&lng="+currentLng;
+         window.open(theUrl, '_blank');
+
+       });
+
+  }
+
+
+  </script>
+
+  <script async defer
+      src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD4w4Yw72Rf3z8Z7TnLQ6HkJqZ5NEgV2pw&libraries=places&callback=initialize">
+  </script>
+
+ </body>
+</html>
