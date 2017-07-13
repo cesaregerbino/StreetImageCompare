@@ -120,6 +120,14 @@
            <div id="google_map" style="width:100%;height:100%"></div>
          </td>
          <td id="google-street-view">
+           <div id="no_google-street-view_images" style="width:100%;height:100%;position:absolute;z-index:1;top:25%;left:60%;color:red;display:none">
+             <p>
+                <b>
+                 There are no Google Street View images for the current location.<br>
+                 Please, type another city, address or lat, long coordinates !!!
+                </b>
+             </p>
+          </div>
            <div id="google-street-view_images" style="width:100%;height:100%"></div>
          </td>
        </tr>
@@ -131,11 +139,11 @@
            </div>
          </td>
          <td id="mapillary">
-           <div id="no_mapillary_images" style="width:100%;height:100%;position:absolute;z-index:1;top:75%;left:65%;color:red;display:none">
+           <div id="no_mapillary_images" style="width:100%;height:100%;position:absolute;z-index:1;top:75%;left:60%;color:red;display:none">
              <p>
                 <b>
                  There are no Mapillary images for the current location.<br>
-                 Please, type another address or city !!!
+                 Please, type another city, address or lat, long coordinates !!!
                 </b>
              </p>
           </div>
@@ -263,6 +271,50 @@
 
              //*** Syinchronize Google Street View ...
              window.panorama.setPosition(google_map.getCenter());
+
+
+
+
+             var streetview = new google.maps.StreetViewService();
+
+             //alert("Lat = " + window.google_map.getCenter().lat() + " - Lng = " + window.google_map.getCenter().lng());
+
+             var streetViewLocation = new google.maps.LatLng(google_map.getCenter().lat(), google_map.getCenter().lng());
+
+             //var streetViewLocation = new google.maps.LatLng(37.579578, 14.522108);
+
+             streetview.getPanoramaByLocation(streetViewLocation, 50, function(data, status) {
+                 if (status == 'OK') {
+                     //google has a streetview image for this location, so attach it to the streetview div
+                     //alert("OK, there are some Google Street Images .... ");
+
+                     var google_street_view_images_div = document.getElementById('google-street-view_images');
+                     google_street_view_images_div.style.opacity = 1;
+                     var no_google_street_view_images_div = document.getElementById('no_google-street-view_images');
+                     no_google_street_view_images_div.style.display = "none";
+
+                     //no_mapillary_images = false;
+
+                }
+                 else{
+                     //no google streetview image for this location, so hide the streetview div
+                     //alert("Ops !!! There are NO Google Street Images .... ");
+
+                     var google_street_view_images_div = document.getElementById('google-street-view_images');
+                     google_street_view_images_div.style.opacity = .2;
+                     var no_google_street_view_images_div = document.getElementById('no_google-street-view_images');
+                     no_google_street_view_images_div.style.display = "";
+
+                     //*** Set that NO Mapillary images are founded ...
+                     //no_mapillary_images = true;
+
+                 }
+             });
+
+
+
+
+
            });
 
         //*** Add a button to draw point on Google Maps ...
@@ -410,8 +462,6 @@
        };
       });
 
-
-
       // *** ON/OFF Mapillary sequences ...
       var toggleableLayerIds = [ 'ON/OFF Mapillary sequences' ];
       for (var i = 0; i < toggleableLayerIds.length; i++) {
@@ -469,9 +519,6 @@
                   }
               }, 'markers')
       })
-
-
-
 
       //*** Add Mapillary ...
       window.mly = new Mapillary.Viewer(
