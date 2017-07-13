@@ -1,0 +1,351 @@
+<!DOCTYPE html>
+<html>
+  <head>
+    <meta charset="utf-8">
+    <title>Street Image Compare View Side-by-Side</title>
+
+    <link href='https://unpkg.com/mapillary-js@2.5.0/dist/mapillary.min.css' rel='stylesheet' />
+    <link href='https://unpkg.com/leaflet@1.0.1/dist/leaflet.css' rel='stylesheet' />
+
+    <script src='https://unpkg.com/mapillary-js@2.5.0/dist/mapillary.min.js'></script>
+    <script src='https://unpkg.com/leaflet@1.0.1/dist/leaflet.js'></script>
+
+    <!-- *** References for MapBox GL JS ... -->
+		<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.js'></script>
+    <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.css' rel='stylesheet' />
+
+    <!-- *** References for MapBox GL Draw ... -->
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v0.18.0/mapbox-gl-draw.js'></script>
+    <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v0.18.0/mapbox-gl-draw.css' type='text/css'/>
+
+    <style>
+      html, body {
+        min-height: 100%;
+        min-width: 100%;
+        margin: 0;
+        padding: 0;
+      }
+      table {
+        width: 95vw;
+        height: 95vh;
+      }
+      td {
+        width: 50%;
+        height: 50%;
+      }
+
+   </style>
+  </head>
+  <body>
+    <div id="titlebar">
+     <center>
+      <table border=0 style="width:95vw;height:5vw">
+        <tr>
+         <td>
+          <div id="address">
+           <center>
+              Type city name / address:
+              <input id="textToGeoCode" type="text" value="">
+              <input type="submit" value="Go" onclick="geoCode()">
+           </center>
+          </div>
+         </td>
+         <td>
+          <div id="selectStreetView">
+           <center>
+            Choose the street image that will be the "master":
+            <select onchange="onSelect.call(this, event)">
+              <option value="mapillary">Google Street View</option>
+              <option value="streetview">Mapillary</option>
+            </select>
+           </center>
+          </div>
+         </td>
+        </tr>
+      </table>
+    </center>
+    </div>
+
+    <div id="maps-images">
+     <center>
+      <table border=1>
+       <!-- first row -->
+       <tr id="row1">
+         <td id="g_map">
+           <div id="google_map" style="width:100%;height:100%"></div>
+         </td>
+         <td id="google-street-view">
+           <div id="google-street-view_images" style="width:100%;height:100%"></div>
+         </td>
+       </tr>
+       <!-- second row -->
+  	   <tr id="row2">
+         <td id="osm">
+           <div id="osm_map" style="width:100%;height:100%"></div>
+         </td>
+         <td id="mapillary">
+           <div id="no_mapillary_images" style="width:100%;height:100%;position:absolute;z-index:1;top:75%;left:65%;color:red;display:none">
+             <p>
+                <b>
+                 There are no Mapillary images for the current location.<br>
+                 Please, type another address or city !!!
+                </b>
+             </p>
+          </div>
+          <div id="mapillary_images" style="width:100%;height:100%;position:relative"></div>
+         </td>
+       </tr>
+      </table>
+    </center>
+    </div>
+
+    <div id="bottom">
+      Bottom ...
+    </div>
+
+    <script>
+      var google_map;
+      var panorama;
+      var mly;
+      var no_mapillary_images = false;
+
+      function initialize() {
+        //### The original pegman position ...
+        var pegman_position = {lat: 42.628386111111126, lng: 13.291408333333237};
+        var marker;
+
+        //### Add Google Map ...
+        window.google_map = new google.maps.Map(document.getElementById('google_map'), {
+          center: pegman_position,
+          zoom: 16
+        });
+
+        window.panorama = new google.maps.StreetViewPanorama(
+          document.getElementById('google-street-view_images'), {
+            position: pegman_position,
+            pov: {
+              heading: 34,
+              pitch: 10
+            }
+          });
+       google_map.setStreetView(window.panorama);
+
+       window.panorama.addListener('position_changed', function(){
+          var latLon = { lat: window.panorama.getPosition().lat(), lng: window.panorama.getPosition().lng() };
+
+
+          if (!marker) {
+              marker = new mapboxgl.Marker()
+                .setLngLat([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()])
+                .addTo(osm_map);
+          } else {
+              marker.setLngLat([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
+          }
+          osm_map.setCenter([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
+
+
+
+          window.mly.moveCloseTo(window.panorama.getPosition().lat(), window.panorama.getPosition().lng())
+              .then(
+                  function(node) {
+                    var mapillary_images_div = document.getElementById('mapillary_images');
+                    mapillary_images_div.style.opacity = 1;
+                    var no_mapillary_images_div = document.getElementById('no_mapillary_images');
+                    no_mapillary_images_div.style.display = "none";
+
+                    no_mapillary_images = false;
+
+                    console.log(node.key); },
+                  function(error) {
+                    var mapillary_images_div = document.getElementById('mapillary_images');
+                    mapillary_images_div.style.opacity = .2;
+                    var no_mapillary_images_div = document.getElementById('no_mapillary_images');
+                    no_mapillary_images_div.style.display = "";
+
+                    no_mapillary_images = true;
+
+                    console.error(error);
+                  });
+
+      });
+
+      //### Add Open Street Map  ...
+/*
+      var osm_map = L.map('osm_map').setView([42.628386111111126, 13.291408333333237], 16);
+      var osmUrl='https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png';
+      var osmAttrib='Map data © <a href="https://openstreetmap.org">OpenStreetMap</a> contributors';
+      var osm = new L.TileLayer(osmUrl, { maxZoom: 18, attribution: osmAttrib});
+      osm_map.addLayer(osm);
+*/
+      mapboxgl.accessToken = 'pk.eyJ1IjoiY2VzYXJlIiwiYSI6Im1LdmxtRU0ifQ.uoGK9BB9eywCPknCRlB9JA';
+      // *** Create and configure the map ...
+      var osm_map = new mapboxgl.Map({
+          container: 'osm_map', // container id
+          style: 'mapbox://styles/mapbox/bright-v9', //stylesheet location
+          center: [13.291408333333237,42.628386111111126], // starting position
+          zoom: 16 // starting zoom
+      });
+      // *** Add zoom and rotation controls to the map ...
+//      osm_map.addControl(new mapboxgl.Navigation({position: 'bottom-left'}));
+      osm_map.addControl(new mapboxgl.NavigationControl());
+
+      // *** Add the draw control to the map ...
+      var draw = new MapboxDraw({
+          displayControlsDefault: false,
+          controls: {
+              point: true,
+              trash: true
+          }
+      });
+      osm_map.addControl(draw, 'top-left');
+
+
+      //### Add Mapillary ...
+      window.mly = new Mapillary.Viewer(
+              'mapillary_images',
+              'QjI1NnU0aG5FZFZISE56U3R5aWN4ZzowODkzY2RjNjM1ZmEwYTVi',
+              'Sx1k3lLpdFU1TWS-8u_Y-w',
+          {
+              component: {
+                  cover: false
+              }
+          }
+        );
+      window.mly.deactivateComponent("direction");
+      window.mly.deactivateComponent("sequence");
+
+      window.mly.setCenter(pegman_position.lat, pegman_position.lon);
+
+      //### Draw a green line for the Google Street View table cell ...
+      var td = document.getElementById("google-street-view");
+      td.style.borderColor = "green";
+      td.style.borderWidth = "5px";
+      td.style.borderStyle = "solid";
+
+      //### Put a marker on OSM map and to synchronize it with Mapillary images locations  ...
+      window.mly.on(Mapillary.Viewer.nodechanged, function (node) {
+          var latLon = { lat: node.latLon.lat, lng: node.latLon.lon };
+
+          //alert ("Lat = " + node.latLon.lat);
+          //alert ("window.panorama.Lat = " + window.panorama.getPosition().lat());
+
+          if (!marker) {
+              marker = new mapboxgl.Marker()
+                .setLngLat([node.latLon.lon, node.latLon.lat])
+                .addTo(osm_map);
+          } else {
+              marker.setLngLat([node.latLon.lon, node.latLon.lat]);
+          }
+          osm_map.setCenter([node.latLon.lon, node.latLon.lat]);
+
+          myLatLng = new google.maps.LatLng({lat: node.latLon.lat, lng: node.latLon.lon});
+
+          window.panorama.setPosition(myLatLng);
+/*
+          window.panorama.setPosition().lat() = node.latLon.lat;
+          window.panorama.setPosition().lng() = node.latLon.lon;
+*/
+      });
+
+      window.addEventListener('resize', function() { mly.resize(); });
+
+      }
+
+      function onSelect(event) {
+          switch (this.options[this.selectedIndex].text) {
+             case "Mapillary":
+               if (no_mapillary_images == false) {
+                 var td = document.getElementById("mapillary");
+                 td.style.borderColor = "green";
+                 td.style.borderWidth = "5px";
+                 td.style.borderStyle = "solid";
+
+                 var td = document.getElementById("google-street-view");
+                 td.style.borderColor = "black";
+                 td.style.borderWidth = "1px";
+                 td.style.borderStyle = "solid";
+
+                 window.mly.activateComponent("direction");
+                 window.mly.activateComponent("sequence");
+
+                 //window.panorama.setOptions(scrollwheel:false);
+
+
+                 //panorama = map.getStreetView();
+                 // Set up Street View and initially set it visible. Register the
+                 // custom panorama provider function.
+                 var panoOptions = {
+                   scrollwheel: false,
+                   disableDefaultUI: true,
+                   clickToGo: false
+                 };
+                 window.panorama.setOptions(panoOptions);
+               }
+             break;
+             case "Google Street View":
+               var td = document.getElementById("google-street-view");
+               td.style.borderColor = "green";
+               td.style.borderWidth = "5px";
+               td.style.borderStyle = "solid";
+
+               var td = document.getElementById("mapillary");
+               td.style.borderColor = "black";
+               td.style.borderWidth = "1px";
+               td.style.borderStyle = "solid";
+
+               window.mly.deactivateComponent("direction");
+               window.mly.deactivateComponent("sequence");
+
+               var panoOptions = {
+                 scrollwheel: true,
+                 disableDefaultUI: false,
+                 clickToGo: true
+               };
+               window.panorama.setOptions(panoOptions);
+
+               break;
+            }
+      }
+
+      function geoCode() {
+        var input = document.getElementById("textToGeoCode");
+        var theText = input.value;
+        if (theText) {
+             //alert('The text is: ' + theText);
+             var OpenCage_api_key = '0b74e3813b8e4ec89612caaf3b777cb5';
+             var OpenCage_api_url = "https://api.opencagedata.com/geocode/v1/json?q="+ theText + "&pretty=1&key=" + OpenCage_api_key;
+             var req = new XMLHttpRequest();
+             req.onload = function() {
+               if (req.readyState == 4 && req.status == 200) {
+                 var response = JSON.parse(this.responseText);
+                 var pegman_position = {lat: response.results[0].geometry.lat, lng: response.results[0].geometry.lng};
+                 window.google_map.setCenter(pegman_position);
+                 window.panorama.setPosition(pegman_position);
+
+//                 prompt (this.responseText);
+//                 console.log(this.responseText);
+
+//                 alert("Lat = " + response.results[0].geometry.lat + " - Lon = " + response.results[0].geometry.lng);
+//                 myLatLng = new google.maps.LatLng({lat: response.results[0].geometry.lat, lng: response.results[0].geometry.lng});
+
+//                 window.panorama.setPosition(myLatLng);
+
+               }
+             };
+             req.open("GET", OpenCage_api_url, true);
+             req.send();
+             // Recorder.record('audio', fileName);
+        } else {
+             alert('Please enter a text!');
+             input.focus();
+        }
+      }
+
+    </script>
+
+    <script async defer
+        src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD4w4Yw72Rf3z8Z7TnLQ6HkJqZ5NEgV2pw&callback=initialize">
+    </script>
+
+  </body>
+</html>
