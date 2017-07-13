@@ -36,6 +36,47 @@
         width: 50%;
         height: 50%;
       }
+      #menu {
+          background: #fff;
+          position: absolute;
+          z-index: 1;
+          top: 10px;
+          left: 60px;
+          border-radius: 3px;
+          width: 200px;
+          border: 1px solid rgba(0,0,0,0.4);
+          font-family: 'Open Sans', sans-serif;
+      }
+
+      #menu a {
+          font-size: 13px;
+          color: #404040;
+          display: block;
+          margin: 0;
+          padding: 0;
+          padding: 10px;
+          text-decoration: none;
+          border-bottom: 1px solid rgba(0,0,0,0.25);
+          text-align: center;
+      }
+
+      #menu a:last-child {
+          border: none;
+      }
+
+      #menu a:hover {
+          background-color: #f8f8f8;
+          color: #404040;
+      }
+
+      #menu a.active {
+          background-color: #3887be;
+          color: #ffffff;
+      }
+
+      #menu a.active:hover {
+          background: #3074a4;
+      }
    </style>
   </head>
 
@@ -48,8 +89,8 @@
          <td>
           <div id="address">
            <center>
-              Type city name or address or lat,long:
-              <input id="textToGeoCode" type="text" value="">
+              Search for:
+              <input id="textToGeoCode" type="text" placeholder="Type city name or address or lat,long ..." size="30">
            </center>
           </div>
          </td>
@@ -85,7 +126,9 @@
        <!-- second row -->
   	   <tr id="row2">
          <td id="osm">
-           <div id="osm_map" style="width:100%;height:100%"></div>
+           <div id="osm_map" style="width:100%;height:100%">
+             <nav id="menu"></nav>
+           </div>
          </td>
          <td id="mapillary">
            <div id="no_mapillary_images" style="width:100%;height:100%;position:absolute;z-index:1;top:75%;left:65%;color:red;display:none">
@@ -366,6 +409,69 @@
           google.maps.event.trigger(input, 'keydown', { keyCode: 13 });
        };
       });
+
+
+
+      // *** ON/OFF Mapillary sequences ...
+      var toggleableLayerIds = [ 'ON/OFF Mapillary sequences' ];
+      for (var i = 0; i < toggleableLayerIds.length; i++) {
+          var id = toggleableLayerIds[i];
+
+          var link = document.createElement('a');
+          link.href = '#';
+          link.className = 'active';
+          link.textContent = id;
+
+          link.onclick = function (e) {
+              var clickedLayer = this.textContent;
+              e.preventDefault();
+              e.stopPropagation();
+
+              var visibility = osm_map.getLayoutProperty(clickedLayer, 'visibility');
+
+              if (visibility === 'visible') {
+                  osm_map.setLayoutProperty(clickedLayer, 'visibility', 'none');
+                  this.className = '';
+              } else {
+                  this.className = 'active';
+                  osm_map.setLayoutProperty(clickedLayer, 'visibility', 'visible');
+              }
+          };
+
+          var layers = document.getElementById('menu');
+          layers.appendChild(link);
+      }
+
+      // *** The Mapillary sequences reference ...
+      var mapillarySource = {
+          type: 'vector',
+          tiles: ['http://d25uarhxywzl1j.cloudfront.net/v0.1/{z}/{x}/{y}.mvt'],
+          minzoom: 0,
+          maxzoom: 16
+      }
+
+      // *** Load Mapillary sequences layer to the map ...
+      osm_map.on('style.load', function () {
+              osm_map.addSource('mapillarySequences', mapillarySource)
+              osm_map.addLayer({
+                  'id': 'ON/OFF Mapillary sequences',
+                  'type': 'line',
+                  'source': 'mapillarySequences',
+                  'source-layer': 'mapillary-sequences',
+                  'layout': {
+                      'line-cap': 'round',
+                      'line-join': 'round'
+                  },
+                  'paint': {
+                      'line-opacity': 0.6,
+                      'line-color':   'rgb(53, 175, 109)',
+                      'line-width':   2
+                  }
+              }, 'markers')
+      })
+
+
+
 
       //*** Add Mapillary ...
       window.mly = new Mapillary.Viewer(
