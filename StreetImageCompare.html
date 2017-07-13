@@ -44,7 +44,7 @@
          <td>
           <div id="address">
            <center>
-              Type city name / address:
+              Type city name or address or lat,long:
               <input id="textToGeoCode" type="text" value="">
               <input type="submit" value="Go" onclick="geoCode()">
            </center>
@@ -108,11 +108,68 @@
       var panorama;
       var mly;
       var no_mapillary_images = false;
+      var listenerHandle;
+      var marker;
+
+      //Enable-Disable the functionality
+      function prepareAddMarker(e){
+           listenerHandle = google.maps.event.addListener(window.google_map, 'mousedown', addMarker);
+           window.google_map.setOptions({draggableCursor:'crosshair'});
+       }
+
+      function addMarker(e){
+         if (marker != null) marker.setMap(null);
+         var icon = {
+              path: "M-20,0a20,20 0 1,0 40,0a20,20 0 1,0 -40,0",
+              fillColor: '#FF0000',
+              fillOpacity: .6,
+              anchor: new google.maps.Point(0,0),
+              strokeWeight: 0,
+              scale: 0.5
+          }
+
+          marker = new google.maps.Marker({
+              //position: event.latLng,
+              position: {lat: e.latLng.lat(), lng: e.latLng.lng()},
+              map: window.google_map,
+              draggable: false,
+              icon: icon,
+              zIndex : -20
+          });
+
+          window.google_map.setCenter(new google.maps.LatLng(e.latLng.lat(), e.latLng.lng()));
+
+          google.maps.event.removeListener(listenerHandle);
+          window.google_map.setOptions({draggableCursor:''});
+
+          prepareGeoCode(e.latLng.lat(), e.latLng.lng());
+       }
+
+      function removeMarker(e){
+          marker.setMap(null);
+      }
+
+      function prepareGeoCode (lat, lng){
+          var input = document.getElementById("textToGeoCode");
+          var theText = input.value;
+          input.value = lat + "," + lng;
+          geoCode();
+      }
+
+
+
 
       function initialize() {
         //### The original pegman position ...
         var pegman_position = {lat: 42.628386111111126, lng: 13.291408333333237};
         var marker;
+        var startEdit = false;
+
+        var el = document.createElement('div');
+        el.className = 'marker';
+        el.style.backgroundImage = 'url(http://localhost/Mapillary/StreetImageCompare/markerTransparent.png)';
+        el.style.width = '50px';
+        el.style.height = '50px';
 
         //### Add Google Map ...
         window.google_map = new google.maps.Map(document.getElementById('google_map'), {
@@ -120,31 +177,35 @@
           zoom: 16
         });
 
-        //### Add a button on Google Maps ...
-        var controlMarkerUI = document.createElement('DIV');
-        controlMarkerUI.style.cursor = 'pointer';
-        controlMarkerUI.style.backgroundImage = "url(http://localhost/Mapillary/StreetImageCompare/marker.png)";
-        controlMarkerUI.style.height = '28px';
-        controlMarkerUI.style.width = '25px';
-        controlMarkerUI.style.top = '11px';
-        controlMarkerUI.style.left = '7px';
-        controlMarkerUI.title = 'Click to set the map to Home';
-        //myLocationControlDiv.appendChild(controlUI);
+        //### Add a button to draw point on Google Maps ...
+        var controlEditUI = document.createElement('DIV');
+        controlEditUI.id = "controlEditUI";
+        controlEditUI.style.cursor = 'pointer';
+        controlEditUI.style.backgroundImage = "url(http://localhost/Mapillary/StreetImageCompare/marker.png)";
+        controlEditUI.style.height = '28px';
+        controlEditUI.style.width = '25px';
+        controlEditUI.style.top = '11px';
+        controlEditUI.style.left = '120px';
+        controlEditUI.style.marginLeft = '10px';
+        controlEditUI.title = 'Click to get the coordinates';
+        window.google_map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlEditUI);
 
-        window.google_map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlMarkerUI);
+        controlEditUI.addEventListener('mousedown', prepareAddMarker);
 
         //### Add a button on Google Maps ...
         var controlTrashUI = document.createElement('DIV');
+        controlTrashUI.id = 'controlTrashUI';
         controlTrashUI.style.cursor = 'pointer';
         controlTrashUI.style.backgroundImage = "url(http://localhost/Mapillary/StreetImageCompare/trash.png)";
         controlTrashUI.style.height = '28px';
         controlTrashUI.style.width = '25px';
         controlTrashUI.style.top = '11px';
-        controlTrashUI.style.left = '7px';
-        controlTrashUI.title = 'Click to set the map to Home';
-        //myLocationControlDiv.appendChild(controlUI);
-
+        controlTrashUI.style.left = '150px';
+        controlTrashUI.style.marginLeft = '10px';
+        controlTrashUI.title = 'Click to remove marker from the map';
         window.google_map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlTrashUI);
+
+        controlTrashUI.addEventListener('click', removeMarker);
 
 
         window.panorama = new google.maps.StreetViewPanorama(
@@ -160,7 +221,6 @@
        window.panorama.addListener('position_changed', function(){
           var latLon = { lat: window.panorama.getPosition().lat(), lng: window.panorama.getPosition().lng() };
 
-
           if (!marker) {
               marker = new mapboxgl.Marker()
                 .setLngLat([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()])
@@ -169,8 +229,6 @@
               marker.setLngLat([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
           }
           osm_map.setCenter([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
-
-
 
           window.mly.moveCloseTo(window.panorama.getPosition().lat(), window.panorama.getPosition().lng())
               .then(
@@ -226,6 +284,33 @@
       });
       osm_map.addControl(draw, 'top-left');
 
+      var editButton = document.getElementsByClassName('mapbox-gl-draw_ctrl-draw-btn mapbox-gl-draw_point'); // grab a reference to your element
+
+      for(i=0; i<editButton.length; i++) {
+          editButton[i].onclick = function(){
+                    startEdit = true;
+              };
+      }
+
+      // *** Manage the mouse down event ...
+      osm_map.on('mousedown', function (e) {
+        // *** Get  geo points  ...
+        geoCoords = e.lngLat;
+
+        // *** Get the point geo coordinates  ...
+        lng = Number(geoCoords.lng.toFixed(5));
+        lat = Number(geoCoords.lat.toFixed(5));
+
+        if (startEdit == true) {
+          //alert("Lng = " + lng);
+          var input = document.getElementById("textToGeoCode");
+          var theText = input.value;
+          input.value = lat + "," + lng;
+          startEdit = false;
+
+          geoCode();
+       };
+      });
 
       //### Add Mapillary ...
       window.mly = new Mapillary.Viewer(
@@ -257,7 +342,7 @@
           //alert ("window.panorama.Lat = " + window.panorama.getPosition().lat());
 
           if (!marker) {
-              marker = new mapboxgl.Marker()
+              marker = new mapboxgl.Marker(el, {offset: [-30, -35]})
                 .setLngLat([node.latLon.lon, node.latLon.lat])
                 .addTo(osm_map);
           } else {
