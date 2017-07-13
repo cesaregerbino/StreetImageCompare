@@ -94,7 +94,7 @@
            </center>
           </div>
          </td>
-         <td>
+<!--         <td>
           <div id="selectStreetView">
            <center>
             Choose the street image that will be the "master":
@@ -103,7 +103,7 @@
               <option value="streetview">Mapillary</option>
             </select>
            </center>
-          </div>
+         </div> -->
          </td>
         </tr>
       </table>
@@ -161,12 +161,66 @@
 
     <!-- *** The script section ... -->
     <script>
-      var google_map;                  //*** the Google Map ...
-      var panorama;                    //*** the Google Street View ...
-      var mly;                         //*** Mapillary ...
-      var no_mapillary_images = false; //*** to control if Mapillary images exist or not ...
-      var listenerHandle;              //*** the listener on Google Map for mousedown event ...
-      var marker;                      //*** ???
+      var google_map;                      //*** the Google Map ...
+      var osm_map;
+      var panorama;                        //*** the Google Street View ...
+      var mly;                             //*** Mapillary ...
+      var no_mapillary_images = false;     //*** to control if Mapillary images exist or not ...
+      var listenerHandle;                  //*** the listener on Google Map for mousedown event ...
+      var marker;                          //*** ???
+      var theClickWasMadeOn = "Mapillary"; //*** Where the user clicked on  ...
+
+      //*** Intercept the user click when happen on Google Street View div  ...
+      var google_street_view_images_div = document.getElementById("google-street-view_images"); //grab the element
+      google_street_view_images_div.onclick = function() {
+       window.theClickWasMadeOn = "StreetView";
+      }
+
+      //*** Intercept the user click when happen on Mapillary div  ...
+      var mapillary_images_div = document.getElementById("mapillary_images"); //grab the element
+      mapillary_images_div.onclick = function() {
+        window.theClickWasMadeOn = "Mapillary";
+      }
+
+      //*** Center OSM map and synchronize Google Street View and Mapillary  ...
+      function synchro(view, lat, lng) {
+       window.osm_map.setCenter([lng, lat]);
+
+       if (view == "StreetView") {
+         myLatLng = new google.maps.LatLng({lat: lat, lng: lng});
+
+         //*** Update Google Street View  to the current position ...
+         window.panorama.setPosition(myLatLng);
+       }
+       else {
+         window.mly.moveCloseTo(lat, lng)
+           .then(
+             //*** If images are founded ...
+            function(node) {
+              //alert("Ok mly ...");
+              var mapillary_images_div = document.getElementById('mapillary_images');
+              mapillary_images_div.style.opacity = 1;
+              var no_mapillary_images_div = document.getElementById('no_mapillary_images');
+              no_mapillary_images_div.style.display = "none";
+
+              no_mapillary_images = false;
+
+              console.log(node.key); },
+            //*** If images are NOT founded: in this case show a hidden div with messages ...
+            function(error) {
+             //alert("KO mly ...");
+             var mapillary_images_div = document.getElementById('mapillary_images');
+             mapillary_images_div.style.opacity = .2;
+             var no_mapillary_images_div = document.getElementById('no_mapillary_images');
+             no_mapillary_images_div.style.display = "";
+
+             //*** Set that NO Mapillary images are founded ...
+             no_mapillary_images = true;
+
+             console.error(error);
+            });
+       }
+      }
 
       //*** Define a listener on Google Map for mousedown event and change the cursor option ...
       function prepareAddMarker(e){
@@ -234,11 +288,13 @@
         var pegman_position = {lat: 42.628386111111126, lng: 13.291408333333237};  //*** The original pegman position ...
         var marker;                                                                //*** ??? ...
         var startEdit = false;                                                     //*** ??? ...
+        var currentPositionLat;                                                    //*** ??? ...
+        var currentPositionLng;                                                    //*** ??? ...
 
         //*** Create a div with a marker to put on OSM map ...
         var el = document.createElement('div');
         el.className = 'marker';
-        el.style.backgroundImage = 'url(http://localhost/Mapillary/StreetImageCompare/markerTransparent.png)';
+        el.style.backgroundImage = 'url(http://www.cesaregerbino.com/Mapillary/StreetImageCompare/markerTransparent.png)';
         el.style.width = '50px';
         el.style.height = '50px';
 
@@ -269,11 +325,39 @@
              searchBox.set('google_map', google_map);
              google_map.setZoom(Math.min(google_map.getZoom(),16));
 
+             window.theClickWasMadeOn = "";
+
+             google_map.setCenter(bounds.getCenter());
+
+             window.osm_map.setCenter([google_map.getCenter().lng(), google_map.getCenter().lat()]);
+
              //*** Syinchronize Google Street View ...
              window.panorama.setPosition(google_map.getCenter());
 
+             window.mly.moveCloseTo(google_map.getCenter().lat(), google_map.getCenter().lng())
+               .then(
+                    //*** If images are founded ...
+                    function(node) {
+                      var mapillary_images_div = document.getElementById('mapillary_images');
+                      mapillary_images_div.style.opacity = 1;
+                      var no_mapillary_images_div = document.getElementById('no_mapillary_images');
+                      no_mapillary_images_div.style.display = "none";
 
+                      no_mapillary_images = false;
 
+                      console.log(node.key); },
+                    //*** If images are NOT founded: in this case show a hidden div with messages ...
+                    function(error) {
+                     var mapillary_images_div = document.getElementById('mapillary_images');
+                     mapillary_images_div.style.opacity = .2;
+                     var no_mapillary_images_div = document.getElementById('no_mapillary_images');
+                     no_mapillary_images_div.style.display = "";
+
+                     //*** Set that NO Mapillary images are founded ...
+                     no_mapillary_images = true;
+
+                     console.error(error);
+                    });
 
              var streetview = new google.maps.StreetViewService();
 
@@ -310,18 +394,13 @@
 
                  }
              });
-
-
-
-
-
            });
 
         //*** Add a button to draw point on Google Maps ...
         var controlEditUI = document.createElement('DIV');
         controlEditUI.id = "controlEditUI";
         controlEditUI.style.cursor = 'pointer';
-        controlEditUI.style.backgroundImage = "url(http://localhost/Mapillary/StreetImageCompare/marker.png)";
+        controlEditUI.style.backgroundImage = "url(http://www.cesaregerbino.com/Mapillary/StreetImageCompare/marker.png)";
         controlEditUI.style.height = '28px';
         controlEditUI.style.width = '25px';
         controlEditUI.style.top = '11px';
@@ -337,7 +416,7 @@
         var controlTrashUI = document.createElement('DIV');
         controlTrashUI.id = 'controlTrashUI';
         controlTrashUI.style.cursor = 'pointer';
-        controlTrashUI.style.backgroundImage = "url(http://localhost/Mapillary/StreetImageCompare/trash.png)";
+        controlTrashUI.style.backgroundImage = "url(http://www.cesaregerbino.com/Mapillary/StreetImageCompare/trash.png)";
         controlTrashUI.style.height = '28px';
         controlTrashUI.style.width = '25px';
         controlTrashUI.style.top = '11px';
@@ -362,51 +441,30 @@
 
        //*** Add a listener on Google Street View on position_changed event ...
        window.panorama.addListener('position_changed', function(){
-          //var latLon = { lat: window.panorama.getPosition().lat(), lng: window.panorama.getPosition().lng() };
+         if (theClickWasMadeOn == "StreetView") {
+           currentPositionLat = window.panorama.getPosition().lat();
+           currentPositionLng = window.panorama.getPosition().lng();
+           window.synchro("Mapillary", currentPositionLat, currentPositionLng);
 
-          //*** Create a marker if does not exist and set the current position or, if the marker already exist, set it to the current position  ...
-          if (!marker) {
-              marker = new mapboxgl.Marker()
-                .setLngLat([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()])
-                .addTo(osm_map);
-          } else {
-              marker.setLngLat([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
-          }
+           //window.osm_map.setCenter([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
 
-          //*** Set OSM center to the current position ...
-          osm_map.setCenter([window.panorama.getPosition().lng(), window.panorama.getPosition().lat()]);
+           /*window.mly.moveCloseTo(lat, lng)
+             .then(
+                  //*** If images are founded ...
+                 function(node) {
+                   console.log(node.key); },
+                 //*** If images are NOT founded: in this case show a hidden div with messages ...
+                 function(error) {
+                   console.error(error);
+                 });*/
 
-          //*** Set Mapillary images to the current position ...
-          window.mly.moveCloseTo(window.panorama.getPosition().lat(), window.panorama.getPosition().lng())
-              .then(
-                   //*** If images are founded ...
-                  function(node) {
-                    var mapillary_images_div = document.getElementById('mapillary_images');
-                    mapillary_images_div.style.opacity = 1;
-                    var no_mapillary_images_div = document.getElementById('no_mapillary_images');
-                    no_mapillary_images_div.style.display = "none";
 
-                    no_mapillary_images = false;
-
-                    console.log(node.key); },
-                  //*** If images are NOT founded: in this case show a hidden div with messages ...
-                  function(error) {
-                    var mapillary_images_div = document.getElementById('mapillary_images');
-                    mapillary_images_div.style.opacity = .2;
-                    var no_mapillary_images_div = document.getElementById('no_mapillary_images');
-                    no_mapillary_images_div.style.display = "";
-
-                    //*** Set that NO Mapillary images are founded ...
-                    no_mapillary_images = true;
-
-                    console.error(error);
-                  });
-
-      });
+           }
+        });
 
       //*** Add MapBox / OSM Map ...
       mapboxgl.accessToken = 'pk.eyJ1IjoiY2VzYXJlIiwiYSI6Im1LdmxtRU0ifQ.uoGK9BB9eywCPknCRlB9JA';
-      var osm_map = new mapboxgl.Map({
+      osm_map = new mapboxgl.Map({
           container: 'osm_map',                            //*** container id
           style: 'mapbox://styles/mapbox/bright-v9',       //*** stylesheet location
           center: [13.291408333333237,42.628386111111126], //*** starting position
@@ -523,7 +581,7 @@
       //*** Add Mapillary ...
       window.mly = new Mapillary.Viewer(
               'mapillary_images',
-              'QjI1NnU0aG5FZFZISE56U3R5aWN4ZzowODkzY2RjNjM1ZmEwYTVi',
+              'QWJSSnU3YWRLRFlzc2Q2ZDJZMDc2dzplMjU5ZjIwN2QyMzliZDdh',
               'Sx1k3lLpdFU1TWS-8u_Y-w',
           {
               component: {
@@ -531,8 +589,8 @@
               }
           }
         );
-      window.mly.deactivateComponent("direction");
-      window.mly.deactivateComponent("sequence");
+      //window.mly.deactivateComponent("direction");
+      //window.mly.deactivateComponent("sequence");
 
       window.mly.setCenter(pegman_position.lat, pegman_position.lon);
 
@@ -553,16 +611,21 @@
                 .addTo(osm_map);
           } else {
               marker.setLngLat([node.latLon.lon, node.latLon.lat]);
+          };
+
+          if (theClickWasMadeOn == "Mapillary") {
+            currentPositionLat = node.latLon.lat;
+            currentPositionLng = node.latLon.lon;
+            window.synchro("StreetView", currentPositionLat, currentPositionLng);
+
+            //window.osm_map.setCenter([node.latLon.lon, node.latLon.lat]);
+
+            //myLatLng = new google.maps.LatLng({lat: node.latLon.lat, lng: node.latLon.lon});
+
+            //*** Update Google Street View  to the current position ...
+            //window.panorama.setPosition(myLatLng);
+
           }
-
-          //*** Set OSM center to the current position ...
-          osm_map.setCenter([node.latLon.lon, node.latLon.lat]);
-
-          //*** Get the new current position ...
-          myLatLng = new google.maps.LatLng({lat: node.latLon.lat, lng: node.latLon.lon});
-
-          //*** Update Google Street View  to the current position ...
-          window.panorama.setPosition(myLatLng);
       });
 
       window.addEventListener('resize', function() { mly.resize(); });
