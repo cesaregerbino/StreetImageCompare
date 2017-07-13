@@ -120,6 +120,33 @@
           zoom: 16
         });
 
+        //### Add a button on Google Maps ...
+        var controlMarkerUI = document.createElement('DIV');
+        controlMarkerUI.style.cursor = 'pointer';
+        controlMarkerUI.style.backgroundImage = "url(http://localhost/Mapillary/StreetImageCompare/marker.png)";
+        controlMarkerUI.style.height = '28px';
+        controlMarkerUI.style.width = '25px';
+        controlMarkerUI.style.top = '11px';
+        controlMarkerUI.style.left = '7px';
+        controlMarkerUI.title = 'Click to set the map to Home';
+        //myLocationControlDiv.appendChild(controlUI);
+
+        window.google_map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlMarkerUI);
+
+        //### Add a button on Google Maps ...
+        var controlTrashUI = document.createElement('DIV');
+        controlTrashUI.style.cursor = 'pointer';
+        controlTrashUI.style.backgroundImage = "url(http://localhost/Mapillary/StreetImageCompare/trash.png)";
+        controlTrashUI.style.height = '28px';
+        controlTrashUI.style.width = '25px';
+        controlTrashUI.style.top = '11px';
+        controlTrashUI.style.left = '7px';
+        controlTrashUI.title = 'Click to set the map to Home';
+        //myLocationControlDiv.appendChild(controlUI);
+
+        window.google_map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlTrashUI);
+
+
         window.panorama = new google.maps.StreetViewPanorama(
           document.getElementById('google-street-view_images'), {
             position: pegman_position,
