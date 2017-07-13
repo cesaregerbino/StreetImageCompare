@@ -16,9 +16,10 @@
 		<script src='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.js'></script>
     <link href='https://api.tiles.mapbox.com/mapbox-gl-js/v0.37.0/mapbox-gl.css' rel='stylesheet' />
 
-    <!-- *** References for MapBox GL Draw plugin and stylesheet... -->
-    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v0.18.0/mapbox-gl-draw.js'></script>
-    <link rel='stylesheet' href='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v0.18.0/mapbox-gl-draw.css' type='text/css'/>
+    <!-- *** References for MapBox GL Draw plugin and stylesheet...
+    <script src='https://api.mapbox.com/mapbox-gl-js/plugins/mapbox-gl-draw/v0.18.0/mapbox-gl-draw.js'></script> -->
+    <script src='js/mapbox-gl-draw.js'></script>
+    <link rel='stylesheet' href='css/mapbox-gl-draw.css' type='text/css'/>
 
     <!-- *** Styles... -->
     <style>
@@ -317,7 +318,7 @@
         //*** Create a div with a marker to put on OSM map ...
         var el = document.createElement('div');
         el.className = 'marker';
-        el.style.backgroundImage = 'url(http://www.cesaregerbino.com/Mapillary/StreetImageCompare/markerTransparent.png)';
+        el.style.backgroundImage = 'url(img/markerTransparent.png)';
         el.style.width = '50px';
         el.style.height = '50px';
 
@@ -478,13 +479,13 @@
         var controlEditUI = document.createElement('DIV');
         controlEditUI.id = "controlEditUI";
         controlEditUI.style.cursor = 'pointer';
-        controlEditUI.style.backgroundImage = "url(http://www.cesaregerbino.com/Mapillary/StreetImageCompare/marker.png)";
+        controlEditUI.style.backgroundImage = "url(img/marker.png)";
         controlEditUI.style.height = '28px';
         controlEditUI.style.width = '25px';
         controlEditUI.style.top = '11px';
         controlEditUI.style.left = '120px';
         controlEditUI.style.marginLeft = '10px';
-        controlEditUI.title = 'Click to get the coordinates';
+        controlEditUI.title = 'Click to get the nearest image at the clicked point';
         window.google_map.controls[google.maps.ControlPosition.LEFT_TOP].push(controlEditUI);
 
         //*** Add a listener on the button to draw point on Google Maps for the mousedown event ...
@@ -494,7 +495,7 @@
         var controlTrashUI = document.createElement('DIV');
         controlTrashUI.id = 'controlTrashUI';
         controlTrashUI.style.cursor = 'pointer';
-        controlTrashUI.style.backgroundImage = "url(http://www.cesaregerbino.com/Mapillary/StreetImageCompare/trash.png)";
+        controlTrashUI.style.backgroundImage = "url(img/trash.png)";
         controlTrashUI.style.height = '28px';
         controlTrashUI.style.width = '25px';
         controlTrashUI.style.top = '11px';
@@ -538,6 +539,7 @@
           center: center,                        //*** starting position
           zoom: 16                                            //*** starting zoom
       });
+
 
       //*** Add zoom and rotation controls to the MapBox / OMS map ...
       osm_map.addControl(new mapboxgl.NavigationControl());
