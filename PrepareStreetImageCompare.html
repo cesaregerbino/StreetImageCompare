@@ -1,58 +1,115 @@
 <html>
  <head>
    <meta charset="utf-8">
-   <title>Street Image Compare View Side-by-Side</title>
+   <title>Prepare Street Image Compare View Side-by-Side</title>
 
  </head>
  <body>
-   <div id="address">
+
+   <!-- *** The page structure: header ... -->
+   <div id="titlebar">
     <center>
-       Search for:
-       <input id="textToGeoCode" type="text" placeholder="Type city name or address or lat,long ..." size="30">
+     <table border=1 style="width:95vw;height:5vw">
+       <tr>
+        <td>
+          <center>
+            <b>Street Image Compare</b>
+          </center>
+        </td>
+        <td>
+         <div id="address">
+          <center>
+             Search for:
+             <input id="textToGeoCode" type="text" placeholder="Type city name or address or lat,long ..." size="30">
+          </center>
+         </div>
+        </td>
+       </tr>
+     </table>
+   </center>
+   </div>
+
+   <!-- *** The page structure: body ... -->
+   <div id="center">
+    <center>
+     <table border=1 border=1 style="width:95vw;height:5vw">
+      <!-- first row -->
+      <tr>
+        <td>
+          <div style="width:100%;height:100%">
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <center>
+             Qui occorre mettere un minimo di descrizione, video di demo e istruzioni  ...
+            </center>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+            <br>
+          </div>
+        </td>
+      </tr>
+     </table>
+   </center>
+   </div>
+
+   <!-- *** The page structure: footer ... -->
+   <div id="bottom">
+     <center>
+      <table border=1 border=1 style="width:95vw;height:5vw">
+       <!-- first row -->
+       <tr>
+         <td>
+           <div style="width:100%;height:100%">
+             Qui mettere i riferimenti alla licenza ...
+           </div>
+         </td>
+       </tr>
+      </table>
     </center>
    </div>
-  <script>
-  function initialize() {
-    //*** Add a search text input ...
-    var searchBox = new google.maps.places.SearchBox(document.getElementById("textToGeoCode"));
-
-    //*** Add a listener on search text input ...
-    google.maps.event.addListener(searchBox, 'places_changed', function() {
-         var currentLat;
-         var currentLng;
-
-         searchBox.set('google_map', null);
-
-         var places = searchBox.getPlaces();
-         var bounds = new google.maps.LatLngBounds();
-
-         var i, place;
-         for (i = 0; place = places[i]; i++) {
-           (function(place) {
-             bounds.extend(place.geometry.location);
-           }(place));
-         }
-
-         currentLat = bounds.getCenter().lat();
-         currentLng = bounds.getCenter().lng();
-
-         //alert("Lat = " + currentLat + " - Lng = " + currentLng);
-
-         var theUrl = "StreetImageCompare.html?lat="+currentLat+"&lng="+currentLng;
-
-         //window.location = "StreetImageCompare.html?lat="+currentLat+"&lng="+currentLng;
-         window.open(theUrl, '_blank');
-
-       });
-
-  }
 
 
-  </script>
+   <script>
+      function initialize() {
+        //*** Add a search text input ...
+        var searchBox = new google.maps.places.SearchBox(document.getElementById("textToGeoCode"));
 
-  <script async defer
+        //*** Add a listener on search text input ...
+        google.maps.event.addListener(searchBox, 'places_changed', function() {
+             searchBox.set('google_map', null);
+
+             var places = searchBox.getPlaces();
+             var bounds = new google.maps.LatLngBounds();
+
+             var i, place;
+             for (i = 0; place = places[i]; i++) {
+               (function(place) {
+                 bounds.extend(place.geometry.location);
+               }(place));
+             }
+
+             //*** Build the url to invoke ...
+             var theUrl = "StreetImageCompare.html?lat="+bounds.getCenter().lat()+"&lng="+bounds.getCenter().lng();
+
+             //*** Invoke the url and open in a new window ...
+             window.open(theUrl, '_blank');
+           });
+      }
+   </script>
+
+   <script async defer
       src="https://maps.googleapis.com/maps/api/js?key=AIzaSyD4w4Yw72Rf3z8Z7TnLQ6HkJqZ5NEgV2pw&libraries=places&callback=initialize">
-  </script>
-
+   </script>
  </body>
 </html>
