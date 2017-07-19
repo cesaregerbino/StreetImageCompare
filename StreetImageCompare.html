@@ -219,7 +219,7 @@
          window.panorama.setPosition(myLatLng);
        }
        else {
-         window.mly.moveCloseTo(lat, lng) //??moveToClose
+         window.mly.moveCloseTo(lat, lng)
            .then(
              //*** If images are founded ...
             function(node) {
@@ -256,7 +256,7 @@
        //*** Add a marker on Google Map at user click ...
       function addMarker(e){
          //*** Remove previous marker if exist ...
-         if (markerForGmaps != null) marker.setMap(null);
+         if (markerForGmaps != null) markerForGmaps.setMap(null);
 
          editedPointLat = e.latLng.lat();
          editedPointLng = e.latLng.lng();
@@ -264,11 +264,11 @@
          //*** Define icon ...
          var icon = {
               path: "M-20,0a20,20 0 1,0 40,0a20,20 0 1,0 -40,0",
-              fillColor: '#FF0000',
-              fillOpacity: .6,
+              fillColor: '#ed972d',
+              fillOpacity: 1,
               anchor: new google.maps.Point(0,0),
               strokeWeight: 0,
-              scale: 0.5
+              scale: 0.3
           }
 
           //*** Create a new Google marker ...
@@ -346,7 +346,7 @@
              var currentLat;
              var currentLng;
 
-             searchBox.set('google_map', null); //??????????????????????????????????????
+             searchBox.set('google_map', null);
 
              var places = searchBox.getPlaces();
              var bounds = new google.maps.LatLngBounds();
@@ -386,7 +386,7 @@
              window.panorama.setPosition(google_map.getCenter());
 
              //*** Search the nearest Mapillary image respect current position ...
-             window.mly.moveCloseTo(google_map.getCenter().lat(), google_map.getCenter().lng()) //??moveToClose
+             window.mly.moveCloseTo(google_map.getCenter().lat(), google_map.getCenter().lng())
                .then(
                     //*** If images are founded ...
                     function(node) {
@@ -417,7 +417,8 @@
 
              streetview.getPanoramaByLocation(streetViewLocation, 50, function(data, status) {
                  if (status == 'OK') {
-                     var google_street_view_images_div = document.getElementById('google-street-view_images');  //??????????
+                     //*** Google Street View images are founded ...
+                     var google_street_view_images_div = document.getElementById('google-street-view_images');
                      google_street_view_images_div.style.opacity = 1;
                      var no_google_street_view_images_div = document.getElementById('no_google-street-view_images');
                      no_google_street_view_images_div.style.display = "none";
@@ -449,7 +450,7 @@
                      }
                 }
                  else{
-                     //*** NNO Google Street View are founded ...
+                     //*** NO Google Street View images are founded ...
                      var google_street_view_images_div = document.getElementById('google-street-view_images');
                      google_street_view_images_div.style.opacity = .2;
                      var no_google_street_view_images_div = document.getElementById('no_google-street-view_images');
@@ -502,6 +503,32 @@
             }
           });
        google_map.setStreetView(window.panorama);
+
+       //*** Search the nearest Google Street View image respect current position (around 50 meters) ...
+       var streetViewLocation = new google.maps.LatLng(google_map.getCenter().lat(), google_map.getCenter().lng());
+       var streetview = new google.maps.StreetViewService();
+
+       streetview.getPanoramaByLocation(streetViewLocation, 50, function(data, status) {
+           if (status == 'OK') {
+               //*** Google Street View are founded ...
+               var google_street_view_images_div = document.getElementById('google-street-view_images');
+               google_street_view_images_div.style.opacity = 1;
+               var no_google_street_view_images_div = document.getElementById('no_google-street-view_images');
+               no_google_street_view_images_div.style.display = "none";
+
+                 //*** Set that Google Street View are founded ...
+                 no_streetview_images = false;
+          }
+           else{
+               //*** NO Google Street View are founded ...
+               var google_street_view_images_div = document.getElementById('google-street-view_images');
+               google_street_view_images_div.style.opacity = .2;
+               var no_google_street_view_images_div = document.getElementById('no_google-street-view_images');
+               no_google_street_view_images_div.style.display = "";
+
+               no_streetview_images = true;
+           }
+       });
 
        //*** Add a listener on Google Street View on position_changed event ...
        window.panorama.addListener('position_changed', function(){
@@ -623,8 +650,8 @@
                   },
                   'paint': {
                       'line-opacity': 0.6,
-                      'line-color':   'rgb(53, 175, 109)',
-                      'line-width':   2
+                      'line-color':   'rgb(63, 97, 211)',
+                      'line-width':   4
                   }
               }, 'markers')
       })
@@ -637,7 +664,7 @@
 
       window.mly.setCenter(pegman_position.lat(), pegman_position.lng());
 
-      window.mly.moveCloseTo(pegman_position.lat(), pegman_position.lng()) //moveToClose
+      window.mly.moveCloseTo(pegman_position.lat(), pegman_position.lng())
             .then(
               function(node) {
                 //alert("Ok mly ...");
