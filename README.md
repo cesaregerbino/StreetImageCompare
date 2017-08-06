@@ -4,7 +4,7 @@
 
 Il codice di questo piccolo esperimento di web mapping permette di confrontare per una determinata zona le immagini disponibili in Google Street View (rif. https://it.wikipedia.org/wiki/Google_Street_View) e Mapillary (rif. https://it.wikipedia.org/wiki/Mapillary).
 
-Per maggiori dettagli http://cesaregerbino.wordpress.com/yyyyyyyyyy
+Per maggiori dettagli https://cesaregerbino.wordpress.com/2017/08/06/street-image-compare-confrontare-google-street-view-e-mapillary-nella-stessa-pagina-web/
 
 
 
